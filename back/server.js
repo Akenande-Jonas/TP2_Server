@@ -53,7 +53,7 @@ function verifyToken(req, res, next) {
         return res.status(401).json({ message: 'Token manquant' });
     }
     
-    const user = database.users.find(u => u.token === token);
+    const user = database.User.find(u => u.token === token);
     
     if (!user) {
         return res.status(403).json({ message: 'Token invalide' });
@@ -116,27 +116,74 @@ function convertToDecimal(coord, direction) {
 // Routes API
 
 // Login
-app.post('/api/login', (req, res) => {
-    const { mail, mdp } = req.body;
-    
-    const user = database.users.find(u => u.mail === mail && u.mdp === mdp);
-    
-    if (!user) {
-        return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
-    }
-    
+
+//app.post('/api/login', (req, res) => {
+//    const { mail, mdp } = req.body;
+//    
+//    const user = database.user.find(u => u.mail === mail && u.mdp === mdp);
+//    
+//    if (!user) {
+//        return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
+//    }
+//    
     // Générer un nouveau token
-    const token = generateToken();
-    user.token = token;
-    
+//    const token = generateToken();
+//    user.token = token;
+//    
     // Ne pas renvoyer le mot de passe
-    const { mdp: _, ...userWithoutPassword } = user;
+//    const { mdp: _, ...userWithoutPassword } = user;
     
-    res.json({ 
-        message: 'Connexion réussie',
-        token,
-        user: userWithoutPassword
-    });
+//    res.json({ 
+//        message: 'Connexion réussie',
+//        token,
+//        user: userWithoutPassword
+//    });
+//});
+
+app.post('/api/login', async (req, res) => {
+    try {
+        const { mail, mdp } = req.body;
+        console.log("Tentative de connexion pour :", mail);
+
+        // 1. On cherche l'utilisateur dans MySQL
+        const [rows] = await bddConnexion.execute(
+            'SELECT * FROM user WHERE mail = ?', 
+            [mail]
+        );
+
+        const user = rows[0];
+
+        // 2. Si l'utilisateur n'existe pas
+        if (!user) {
+            return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
+        }
+
+        // 3. Vérification du mot de passe
+        // Si tu n'utilises pas encore bcrypt pour l'enregistrement, 
+        // remplace temporairement par : if (mdp !== user.mdp)
+        const match = await bcrypt.compare(mdp, user.mdp);
+        
+        if (!match) {
+            return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
+        }
+
+        // 4. Tout est bon, on génère le token
+        const token = jwt.sign(
+            { id: user.id, mail: user.mail }, 
+            SECRET_KEY || 'ma_cle_de_secours', // Evite le crash si SECRET_KEY est vide
+            { expiresIn: '1h' }
+        );
+
+        res.json({ 
+            message: 'Connexion réussie',
+            token: token,
+            user: { id: user.id, mail: user.mail }
+        });
+
+    } catch (error) {
+        console.error("ERREUR CRITIQUE :", error);
+        res.status(500).json({ message: "Erreur technique sur le serveur" });
+    }
 });
 
 // Vérification du token
@@ -149,7 +196,7 @@ app.post('/api/verify-token', (req, res) => {
         return res.status(401).json({ message: 'Token manquant' });
     }
     
-    const user = database.users.find(u => u.id === userId && u.token === token);
+    const user = database.User.find(u => u.id === userId && u.token === token);
     
     if (!user) {
         return res.status(403).json({ message: 'Token invalide' });
