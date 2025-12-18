@@ -1,5 +1,5 @@
 // Configuration de l'API
-const API_URL = 'http://localhost:3000/LowranceHAM/front/';
+const API_URL = 'http://localhost:2864/api';
 
 // État global de l'application
 let currentUser = null;
@@ -64,7 +64,7 @@ async function login() {
     }
     
     try {
-        const response = await fetch(`${API_URL}`, {
+        const response = await fetch(`${API_URL}/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
