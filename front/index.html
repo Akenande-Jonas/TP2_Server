@@ -12,43 +12,62 @@
         <div class="login-box">
             <div class="login-header">
                 <div class="icon-circle">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                    </svg>
-                </div>
-                <h1>GPS Tracker</h1>
-                <p>Connectez-vous pour accéder au système</p>
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
             </div>
+            <h1 id="authTitle">GPS Tracker</h1>
+            <p id="authSubtitle">Connectez-vous pour accéder au système</p>
+        </div>
 
-            <div class="login-form">
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="loginEmail" placeholder="votre@email.com">
-                </div>
-
-                <div class="form-group">
-                    <label>Mot de passe</label>
-                    <input type="password" id="loginPassword" placeholder="••••••••">
-                </div>
-
-                <div id="loginError" class="error-message" style="display: none;"></div>
-
-                <button class="btn-primary" onclick="login()">
-                    <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                    </svg>
-                    Se connecter
-                </button>
+        <div id="loginForm" class="login-form">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" placeholder="votre@email.com">
             </div>
+        <div class="form-group">
+            <label>Mot de passe</label>
+            <input type="password" id="loginPassword" placeholder="••••••••">
+        </div>
+        <button class="btn-primary" onclick="login()">Se connecter</button>
+        <p style="text-align: center; margin-top: 1rem; font-size: 0.875rem;">
+            Pas de compte ? <a href="#" onclick="toggleAuth(true)">S'inscrire</a>
+        </p>
+    </div>
 
-            <div class="test-accounts">
-                <p class="test-title">Comptes de test:</p>
-                <p>jean.dupont@email.com / password123</p>
-                <p>marie.martin@email.com / secure456</p>
+    <div id="registerForm" class="login-form" style="display: none;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+                <label>Prénom</label>
+                <input type="text" id="regPrenom" placeholder="Jean">
+            </div>
+            <div class="form-group">
+                <label>Nom</label>
+                <input type="text" id="regNom" placeholder="Dupont">
             </div>
         </div>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="regEmail" placeholder="jean.dupond@email.com">
+        </div>
+        <div class="form-group">
+            <label>Mot de passe</label>
+            <input type="password" id="regPassword" placeholder="••••••••">
+        </div>
+        <button class="btn-primary" onclick="register()">Créer un compte</button>
+        <p style="text-align: center; margin-top: 1rem; font-size: 0.875rem;">
+            Déjà un compte ? <a href="#" onclick="toggleAuth(false)">Se connecter</a>
+        </p>
+    </div>
+
+    <div id="loginError" class="error-message" style="display: none;"></div>
+
+    <div id="testAccountsInfo" class="test-accounts">
+        <p class="test-title">Comptes de test:</p>
+        <p>jean.dupond@email.com / password123</p>
+    </div>
+</div>
     </div>
 
     <!-- Dashboard Principal -->

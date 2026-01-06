@@ -186,6 +186,40 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// Inscription d'un nouvel utilisateur
+app.post('/api/register', async (req, res) => {
+    try {
+        const { nom, prenom, mail, mdp } = req.body;
+
+        // 1. Vérifier si l'utilisateur existe déjà
+        const [existingUser] = await bddConnexion.execute(
+            'SELECT id FROM User WHERE mail = ?',
+            [mail]
+        );
+
+        if (existingUser.length > 0) {
+            return res.status(400).json({ message: 'Cet email est déjà utilisé' });
+        }
+
+        // 2. Hacher le mot de passe
+        const saltRounds = 10;
+        const hashedMdp = await bcrypt.hash(mdp, saltRounds);
+
+        // 3. Insérer dans la base de données
+        // On suppose que par défaut booladmin est à 0 (false)
+        await bddConnexion.execute(
+            'INSERT INTO User (nom, prenom, mail, mdp, booladmin) VALUES (?, ?, ?, ?, ?)',
+            [nom, prenom, mail, hashedMdp, 0]
+        );
+
+        res.status(201).json({ message: 'Utilisateur créé avec succès' });
+
+    } catch (error) {
+        console.error("ERREUR INSCRIPTION :", error);
+        res.status(500).json({ message: "Erreur lors de la création du compte" });
+    }
+});
+
 // Vérification du token
 app.post('/api/verify-token', (req, res) => {
     const authHeader = req.headers['authorization'];

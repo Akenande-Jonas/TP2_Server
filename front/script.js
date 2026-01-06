@@ -90,6 +90,69 @@ async function login() {
     }
 }
 
+
+// Basculer entre Login et Register
+function toggleAuth(isRegister) {
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const authTitle = document.getElementById('authTitle');
+    const authSubtitle = document.getElementById('authSubtitle');
+    const errorDiv = document.getElementById('loginError');
+    const testInfo = document.getElementById('testAccountsInfo');
+
+    errorDiv.style.display = 'none';
+    
+    if (isRegister) {
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+        testInfo.style.display = 'none';
+        authTitle.textContent = "Inscription";
+        authSubtitle.textContent = "Créez votre compte GPS Tracker";
+    } else {
+        loginForm.style.display = 'block';
+        registerForm.style.display = 'none';
+        testInfo.style.display = 'block';
+        authTitle.textContent = "GPS Tracker";
+        authSubtitle.textContent = "Connectez-vous pour accéder au système";
+    }
+}
+
+// Fonction d'inscription
+async function register() {
+    const prenom = document.getElementById('regPrenom').value;
+    const nom = document.getElementById('regNom').value;
+    const email = document.getElementById('regEmail').value;
+    const password = document.getElementById('regPassword').value;
+    const errorDiv = document.getElementById('loginError');
+
+    errorDiv.style.display = 'none';
+
+    if (!prenom || !nom || !email || !password) {
+        showError(errorDiv, 'Veuillez remplir tous les champs');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prenom, nom, mail: email, mdp: password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert('Compte créé avec succès ! Connectez-vous.');
+            toggleAuth(false); // Retour au login
+        } else {
+            showError(errorDiv, data.message || "Erreur lors de l'inscription");
+        }
+    } catch (error) {
+        console.error("Erreur d'inscription:", error);
+        showError(errorDiv, 'Erreur de connexion au serveur');
+    }
+}
+
 // Déconnexion
 async function logout() {
     const token = sessionStorage.getItem('userToken');
