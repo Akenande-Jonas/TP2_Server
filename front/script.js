@@ -1,4 +1,3 @@
-// Configuration de l'API
 const API_URL = 'http://localhost:2864/api';
 
 // État global de l'application
@@ -6,6 +5,20 @@ let currentUser = null;
 let gpsData = [];
 let map;
 let markerLayer; // Pour grouper les marqueurs et les effacer facilement
+let routePath; // Pour stocker la ligne qui relie les points
+
+// On vérifie immédiatement si une session existe dans le navigateur
+const savedUser = sessionStorage.getItem('currentUser');
+const savedToken = sessionStorage.getItem('userToken');
+
+if (savedUser && savedToken) {
+    currentUser = JSON.parse(savedUser);
+    // On attend que la page soit prête pour afficher le dashboard
+    window.addEventListener('DOMContentLoaded', () => {
+        showDashboard();
+        loadUserData();
+    });
+}
 
 // Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', () => {
@@ -74,15 +87,22 @@ async function login() {
             body: JSON.stringify({ mail: email, mdp: password })
         });
         
-        const data = await response.json();
         
         if (response.ok) {
-            currentUser = data.user;
-            sessionStorage.setItem('userToken', data.token);
-            sessionStorage.setItem('userId', data.user.id);
-            
-            showDashboard();
-            loadUserData();
+            const data = await response.json();
+            console.log("Données reçues du serveur :", data);
+
+            if (data.user && data.token) {
+                currentUser = data.user;
+                sessionStorage.setItem('userToken', data.token);
+                sessionStorage.setItem('userId', data.user.id);
+                sessionStorage.setItem('currentUser', JSON.stringify(data.user));
+                console.log("SessionStorage mis à jour !");
+                showDashboard();
+                loadUserData();
+            } else {
+                console.error("ERREUR : data.user est vide ! Vérifie ton server.js");
+            }
         } else {
             showError(errorDiv, data.message || 'Email ou mot de passe incorrect');
         }
@@ -157,33 +177,41 @@ async function register() {
 
 // Déconnexion
 async function logout() {
+    if (window.refreshInterval) clearInterval(window.refreshInterval);
     const token = sessionStorage.getItem('userToken');
     
+    // 1. Prévenir le serveur (optionnel avec JWT mais plus propre)
     if (token) {
         try {
             await fetch(`${API_URL}/logout`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
         } catch (error) {
-            console.error('Erreur lors de la déconnexion:', error);
+            console.error('Erreur déconnexion serveur:', error);
         }
     }
     
-    sessionStorage.removeItem('userToken');
-    sessionStorage.removeItem('userId');
+    // 2. Nettoyer TOUT le stockage local
+    sessionStorage.clear(); 
+    
+    // 3. Réinitialiser les variables
     currentUser = null;
     gpsData = [];
     
-    document.getElementById('dashboard').style.display = 'none';
-    document.getElementById('loginPage').style.display = 'flex';
-    
-    // Réinitialiser le formulaire
-    document.getElementById('loginEmail').value = '';
-    document.getElementById('loginPassword').value = '';
-    document.getElementById('loginError').style.display = 'none';
+    // 4. Rediriger proprement en rechargeant la page
+    // Cela remet tout à zéro (Map, variables, formulaires)
+    window.location.reload(); 
+}
+
+function startAutoRefresh() {
+    // On vérifie s'il n'y a pas déjà un intervalle pour éviter les doublons
+    if (window.refreshInterval) clearInterval(window.refreshInterval);
+
+    window.refreshInterval = setInterval(() => {
+        console.log("Actualisation des données...");
+        loadUserData(); // Cette fonction appelle le serveur et updateMap()
+    }, 5000); 
 }
 
 // Afficher le dashboard
@@ -194,6 +222,7 @@ function showDashboard() {
     // Initialiser la carte si elle ne l'est pas déjà
     if (!map) {
         initMap();
+        startAutoRefresh();
     }
 
     document.getElementById('userName').textContent = `${currentUser.prenom} ${currentUser.nom}`;
@@ -226,29 +255,41 @@ function initMap() {
 function updateMap() {
     if (!markerLayer) return;
 
-    // On vide les anciens marqueurs
     markerLayer.clearLayers();
+    if (routePath) map.removeLayer(routePath); // On enlève l'ancienne ligne
 
     if (gpsData.length === 0) return;
 
-    const points = [];
+    // 1. Extraire les coordonnées dans l'ordre CHRONOLOGIQUE
+    // Note: on fait un .reverse() car gpsData arrive souvent du plus récent au plus ancien
+    const coords = [...gpsData]
+        .reverse() 
+        .map(data => [parseFloat(data.latitude), parseFloat(data.longitude)])
+        .filter(coord => !isNaN(coord[0]) && !isNaN(coord[1]));
 
-    gpsData.forEach(data => {
-        const lat = parseFloat(data.latitude);
-        const lon = parseFloat(data.longitude);
-        
-        if (!isNaN(lat) && !isNaN(lon)) {
-            const marker = L.marker([lat, lon])
-                .bindPopup(`<b>ID: ${data.id}</b><br>${formatDate(data.horaire)}`);
-            markerLayer.addLayer(marker);
-            points.push([lat, lon]);
-        }
+    // 2. Créer les marqueurs pour chaque point
+    coords.forEach((coord, index) => {
+        const isLast = index === coords.length - 1;
+        const marker = L.circleMarker(coord, {
+            radius: isLast ? 8 : 4, // Le dernier point est plus gros
+            color: isLast ? 'red' : '#3388ff',
+            fillOpacity: 0.8
+        }).addTo(markerLayer);
     });
 
-    // Ajuster le zoom pour voir tous les points
-    if (points.length > 0) {
-        const bounds = L.latLngBounds(points);
-        map.fitBounds(bounds, { padding: [50, 50] });
+    // 3. Tracer la ligne (La Route)
+    if (coords.length > 1) {
+        routePath = L.polyline(coords, {
+            color: 'blue',
+            weight: 3,
+            opacity: 0.6,
+            dashArray: '5, 10' // Optionnel: ligne en pointillés pour un look "tracker"
+        }).addTo(map);
+    }
+
+    // 4. Centrer la carte sur le dernier point reçu
+    if (coords.length > 0) {
+        map.panTo(coords[coords.length - 1]);
     }
 }
 
@@ -341,7 +382,7 @@ function updateTable() {
             <td>${formatDate(data.horaire)}</td>
             <td class="coord-text">${data.latitude}</td>
             <td class="coord-text">${data.longitude}</td>
-            <td class="trame-text" title="${data.textebrute}">${data.textebrute}</td>
+            <td class="trame-text" title="${data.texteBrute}">${data.texteBrute}</td>
         </tr>
     `).join('');
     updateMap();
@@ -371,3 +412,19 @@ function showError(element, message) {
     element.style.display = 'block';
 }
 
+// Vérification automatique au chargement de la page
+window.onload = () => {
+    const savedToken = sessionStorage.getItem('userToken');
+    const savedUser = sessionStorage.getItem('currentUser');
+
+    if (savedToken && savedUser) {
+        // On restaure les données globales
+        currentUser = JSON.parse(savedUser);
+        
+        // On affiche le dashboard directement
+        showDashboard();
+        
+        // On recharge les données depuis la BDD LOWRANCE
+        loadUserData();
+    }
+};
