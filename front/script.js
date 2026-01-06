@@ -4,6 +4,8 @@ const API_URL = 'http://localhost:2864/api';
 // État global de l'application
 let currentUser = null;
 let gpsData = [];
+let map;
+let markerLayer; // Pour grouper les marqueurs et les effacer facilement
 
 // Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', () => {
@@ -189,11 +191,65 @@ function showDashboard() {
     document.getElementById('loginPage').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
     
-    // Mettre à jour les informations utilisateur
+    // Initialiser la carte si elle ne l'est pas déjà
+    if (!map) {
+        initMap();
+    }
+
     document.getElementById('userName').textContent = `${currentUser.prenom} ${currentUser.nom}`;
     document.getElementById('userEmail').textContent = currentUser.mail;
     document.getElementById('userStatus').textContent = currentUser.booladmin ? 'Administrateur' : 'Utilisateur';
     document.getElementById('userToken').textContent = sessionStorage.getItem('userToken').substring(0, 20) + '...';
+    // Actualiser les données toutes les 5 secondes
+    setInterval(() => {
+        if (sessionStorage.getItem('userToken')) {
+            loadUserData(); 
+        }
+    }, 5000);
+}
+
+//Initialiser la carte
+
+function initMap() {
+    // On centre par défaut sur la France
+    map = L.map('map').setView([46.603354, 1.888334], 5);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    markerLayer = L.layerGroup().addTo(map);
+}
+
+// updateMarkers sur la carte
+
+function updateMap() {
+    if (!markerLayer) return;
+
+    // On vide les anciens marqueurs
+    markerLayer.clearLayers();
+
+    if (gpsData.length === 0) return;
+
+    const points = [];
+
+    gpsData.forEach(data => {
+        const lat = parseFloat(data.latitude);
+        const lon = parseFloat(data.longitude);
+        
+        if (!isNaN(lat) && !isNaN(lon)) {
+            const marker = L.marker([lat, lon])
+                .bindPopup(`<b>ID: ${data.id}</b><br>${formatDate(data.horaire)}`);
+            markerLayer.addLayer(marker);
+            points.push([lat, lon]);
+        }
+    });
+
+    // Ajuster le zoom pour voir tous les points
+    if (points.length > 0) {
+        const bounds = L.latLngBounds(points);
+        map.fitBounds(bounds, { padding: [50, 50] });
+    }
 }
 
 // Charger les données de l'utilisateur
@@ -288,6 +344,7 @@ function updateTable() {
             <td class="trame-text" title="${data.textebrute}">${data.textebrute}</td>
         </tr>
     `).join('');
+    updateMap();
 }
 
 // Mettre à jour les statistiques
@@ -313,3 +370,4 @@ function showError(element, message) {
     element.textContent = message;
     element.style.display = 'block';
 }
+

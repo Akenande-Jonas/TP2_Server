@@ -163,7 +163,7 @@ app.post('/api/login', async (req, res) => {
         // remplace temporairement par : if (mdp !== user.mdp)
         const match = await bcrypt.compare(mdp, user.mdp);
         
-        if (!match) {
+        if (!match ) {
             return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
         }
 
