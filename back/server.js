@@ -147,7 +147,7 @@ app.post('/api/login', async (req, res) => {
 
         // 1. On cherche l'utilisateur dans MySQL
         const [rows] = await bddConnexion.execute(
-            'SELECT * FROM user WHERE mail = ?', 
+            'SELECT * FROM User WHERE mail = ?', 
             [mail]
         );
 
