@@ -261,9 +261,7 @@ function updateMap() {
     if (gpsData.length === 0) return;
 
     // 1. Extraire les coordonnées dans l'ordre CHRONOLOGIQUE
-    // Note: on fait un .reverse() car gpsData arrive souvent du plus récent au plus ancien
     const coords = [...gpsData]
-        .reverse() 
         .map(data => [parseFloat(data.latitude), parseFloat(data.longitude)])
         .filter(coord => !isNaN(coord[0]) && !isNaN(coord[1]));
 

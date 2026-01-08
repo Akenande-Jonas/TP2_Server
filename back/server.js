@@ -13,10 +13,10 @@ const SECRET_KEY = 'votre_cle_secrete_super_secure';
 
 // --- CONNEXION MYSQL ---
 const bddConnexion = mysql.createPool({
-    host: '172.29.17.171', // L'adresse de ton serveur MySQL
-    user: 'lowrance', // Ton utilisateur
-    password: 'test.html', // Ton mot de passe (souvent vide sur XAMPP)
-    database: 'LOWRANCE' // Le nom de ta base
+    host: '172.29.17.171',
+    user: 'lowrance',
+    password: 'test.html',
+    database: 'LOWRANCE'
 });
 
 // --- MIDDLEWARE DE VÉRIFICATION ---
